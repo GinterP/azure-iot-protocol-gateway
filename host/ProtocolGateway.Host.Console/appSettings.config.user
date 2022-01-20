@@ -8,9 +8,9 @@
   <add key="RetainPropertyName" value="mqtt-retain" /> <!-- default: mqtt-retain -->
   <add key="DupPropertyName" value="mqtt-dup" /> <!-- default: mqtt-dup -->
   <add key="QoSPropertyName" value="mqtt-qos" /> <!-- default: mqtt-qos -->
-  
+
   <!-- IoT Hub settings -->
-  <add key="IotHubClient.ConnectionString" value="TODO: IoT Hub connection string to connect to" />
+  <add key="IotHubClient.ConnectionString" value="HostName=test.azure-devices.net;SharedAccessKeyName=test;SharedAccessKey=SharedAccessKeyzEAn+4GCr=" />
   <add key="IotHubClient.MaxPendingInboundMessages" value="10" /> <!-- default: 16 -->
   <add key="IotHubClient.MaxPendingOutboundMessages" value="10" /> <!-- default: 1 -->
   <add key="IotHubClient.DefaultPublishToClientQoS" value="1" /> <!-- default: 1 -->

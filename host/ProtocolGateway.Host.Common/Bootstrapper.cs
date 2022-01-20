@@ -26,6 +26,8 @@ namespace ProtocolGateway.Host.Common
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Message = Microsoft.Azure.Devices.ProtocolGateway.Messaging.Message;
+    using Microsoft.Azure.Devices.ProtocolGateway.Http;
+    using DotNetty.Codecs.Http;
 
     public class Bootstrapper
     {
@@ -73,18 +75,18 @@ namespace ProtocolGateway.Host.Common
             {
                 BootstrapperEventSource.Log.Info("Starting", null);
 
-                PerformanceCounters.ConnectionsEstablishedTotal.RawValue = 0;
-                PerformanceCounters.ConnectionsCurrent.RawValue = 0;
-                PerformanceCounters.TotalCommandsReceived.RawValue = 0;
-                PerformanceCounters.TotalMethodsInvoked.RawValue = 0;
+                //PerformanceCounters.ConnectionsEstablishedTotal.RawValue = 0;
+                //PerformanceCounters.ConnectionsCurrent.RawValue = 0;
+                //PerformanceCounters.TotalCommandsReceived.RawValue = 0;
+                //PerformanceCounters.TotalMethodsInvoked.RawValue = 0;
 
                 this.tlsCertificate = certificate;
                 this.parentEventLoopGroup = new MultithreadEventLoopGroup(1);
                 this.eventLoopGroup = new MultithreadEventLoopGroup(threadCount);
 
                 ServerBootstrap bootstrap = this.SetupBootstrap();
-                BootstrapperEventSource.Log.Info($"Initializing TLS endpoint on port {MqttsPort.ToString()} with certificate {this.tlsCertificate.Thumbprint}.", null);
-                this.serverChannel = await bootstrap.BindAsync(IPAddress.Any, MqttsPort);
+                BootstrapperEventSource.Log.Info($"Initializing TLS endpoint on port {8084} with certificate {this.tlsCertificate.Thumbprint}.", null);
+                this.serverChannel = await bootstrap.BindAsync(IPAddress.Any, 8084);
 
                 this.serverChannel.CloseCompletion.LinkOutcome(this.closeCompletionSource);
                 cancellationToken.Register(this.CloseAsync);
@@ -146,28 +148,44 @@ namespace ProtocolGateway.Host.Common
 
             var acceptLimiter = new AcceptLimiter(MaxConcurrentAccepts);
 
-            return new ServerBootstrap()
+           return new ServerBootstrap()
                 .Group(this.parentEventLoopGroup, this.eventLoopGroup)
-                .Option(ChannelOption.SoBacklog, ListenBacklogSize)
-                .Option(ChannelOption.AutoRead, false)
-                .ChildOption(ChannelOption.Allocator, UnpooledByteBufferAllocator.Default)
-                .ChildOption(ChannelOption.AutoRead, false)
+                .Option(ChannelOption.SoBacklog, 8192)
                 .Channel<TcpServerSocketChannel>()
-                .Handler(acceptLimiter)
-                .ChildHandler(new ActionChannelInitializer<ISocketChannel>(channel =>
-                {
-                    channel.Pipeline.AddLast(
-                        TlsHandler.Server(this.tlsCertificate),
-                        new AcceptLimiterTlsReleaseHandler(acceptLimiter),
-                        MqttEncoder.Instance,
-                        new MqttDecoder(true, maxInboundMessageSize),
-                        new MqttAdapter(
-                            this.settings,
-                            this.sessionStateManager,
-                            this.authProvider,
-                            this.qos2StateProvider,
-                            bridgeFactory));
-                }));
+                   .ChildHandler(new ActionChannelInitializer<IChannel>(channel =>
+                    {
+                        IChannelPipeline pipeline = channel.Pipeline;
+                        //if (tlsCertificate != null)
+                        //{
+                        //    pipeline.AddLast(TlsHandler.Server(tlsCertificate));
+                        //}
+                        pipeline.AddLast("encoder", new HttpResponseEncoder());
+                        pipeline.AddLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false));
+                        pipeline.AddLast("handler", new HttpHandler(authProvider, bridgeFactory));
+                    }));
+            //return new ServerBootstrap()
+            //    .Group(this.parentEventLoopGroup, this.eventLoopGroup)
+            //    .Option(ChannelOption.SoBacklog, ListenBacklogSize)
+            //    .Option(ChannelOption.AutoRead, false)
+            //    .ChildOption(ChannelOption.Allocator, UnpooledByteBufferAllocator.Default)
+            //    .ChildOption(ChannelOption.AutoRead, false)
+            //    .Channel<TcpServerSocketChannel>()
+            //    .Handler(acceptLimiter)
+            //.ChildHandler(new ActionChannelInitializer<ISocketChannel>(channel =>
+            //{
+            //    channel.Pipeline.AddLast(
+            //        TlsHandler.Server(this.tlsCertificate),
+            //        new AcceptLimiterTlsReleaseHandler(acceptLimiter),
+            //        MqttEncoder.Instance,
+            //        new MqttDecoder(true, maxInboundMessageSize),
+            //        new MqttAdapter(
+            //            this.settings,
+            //            this.sessionStateManager,
+            //            this.authProvider,
+            //            this.qos2StateProvider,
+            //            bridgeFactory));
+            //}));
+
         }
 
         static async Task<MethodResponse> DispatchCommands(string deviceId, MethodRequest request, IMessageDispatcher dispatcher)

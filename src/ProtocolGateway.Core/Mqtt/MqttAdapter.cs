@@ -857,7 +857,7 @@ namespace Microsoft.Azure.Devices.ProtocolGateway.Mqtt
 
                 CommonEventSource.Log.Info("ClientAuthenticated", this.ChannelId, this.Id);
 
-                this.messagingBridge = await this.messagingBridgeFactory(this.identity, this.lifetimeCancellation.Token);
+                this.messagingBridge = await this.messagingBridgeFactory(this.identity);
 
                 bool sessionPresent = await this.EstablishSessionStateAsync(packet.CleanSession);
 

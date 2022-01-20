@@ -50,22 +50,22 @@ namespace Microsoft.Azure.Devices.ProtocolGateway.IotHubClient
         public static MessagingBridgeFactoryFunc PrepareFactory(string baseConnectionString, int connectionPoolSize,
             TimeSpan? connectionIdleTimeout, IotHubClientSettings settings, Action<IotHubBridge> initHandler)
         {
-            MessagingBridgeFactoryFunc mqttCommunicatorFactory = async (deviceIdentity, cancellationToken) =>
+            MessagingBridgeFactoryFunc communicatorFactory = async (deviceIdentity) =>
             {
                 var csb = IotHubConnectionStringBuilder.Create(baseConnectionString);
                 var identity = (IotHubDeviceIdentity)deviceIdentity;
                 csb.AuthenticationMethod = DeriveAuthenticationMethod(csb.AuthenticationMethod, identity);
                 csb.HostName = identity.IotHubHostName;
                 string connectionString = csb.ToString();
-                var bridge = await CreateFromConnectionStringAsync(identity.Id, connectionString, connectionPoolSize, connectionIdleTimeout, settings, cancellationToken);
+                var bridge = await CreateFromConnectionStringAsync(identity.Id, connectionString, connectionPoolSize, connectionIdleTimeout, settings);
                 initHandler(bridge);
                 return bridge;
             };
-            return mqttCommunicatorFactory;
+            return communicatorFactory;
         }
 
         static async Task<IotHubBridge> CreateFromConnectionStringAsync(string deviceId, string connectionString,
-            int connectionPoolSize, TimeSpan? connectionIdleTimeout, IotHubClientSettings settings, CancellationToken cancellationToken)
+            int connectionPoolSize, TimeSpan? connectionIdleTimeout, IotHubClientSettings settings)
         {
             int maxPendingOutboundMessages = settings.MaxPendingOutboundMessages;
             var tcpSettings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
@@ -109,8 +109,7 @@ namespace Microsoft.Azure.Devices.ProtocolGateway.IotHubClient
 
             try
             {
-                await client.OpenAsync(cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested(); // in case SDK does not always honor cancellation token in async operations
+                await client.OpenAsync();
             }
             catch (IotHubException ex)
             {

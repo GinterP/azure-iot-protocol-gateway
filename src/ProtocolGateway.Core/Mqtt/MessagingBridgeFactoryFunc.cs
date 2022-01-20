@@ -8,5 +8,5 @@ namespace Microsoft.Azure.Devices.ProtocolGateway.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
 
-    public delegate Task<IMessagingBridge> MessagingBridgeFactoryFunc(IDeviceIdentity deviceIdentity, CancellationToken cancellationToken);
+    public delegate Task<IMessagingBridge> MessagingBridgeFactoryFunc(IDeviceIdentity deviceIdentity);
 }

@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.ProtocolGateway.Messaging
 
     public interface IMessagingBridge
     {
+        IMessagingServiceClient DeviceClient { get; }
         void BindMessagingChannel(IMessagingChannel channel);
     
         bool TryResolveClient(string topicName, out IMessagingServiceClient sendingClient);
